@@ -6,7 +6,7 @@ pipeline {
         NEXUS_URL = 'http://nexus.example.com'
         KUBECONFIG = '/path/to/kubeconfig'
         SONARQUBE_URL = 'http://sonarqube.example.com'
-        SONARQUBE_TOKEN = credentials('sonarqube-token') // Asegúrate de definir esta credencial en Jenkins
+        SONARQUBE_TOKEN = credentials('token-sonar-devops') // Asegúrate de definir esta credencial en Jenkins
         PROJECT_KEY = 'my-project'
     }
 
