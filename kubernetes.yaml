@@ -1,77 +1,88 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-config
-data:
-  USERNAME: "defaultUser" # Ajusta esto con el valor predeterminado que desees
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: app-secret
-type: Opaque
-data:
-  API_KEY: <base64_encoded_api_key> # Asegúrate de codificar tu API_KEY en base64
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myapp-deployment
+  name: backend-base-deployment
+  namespace: devops
+  labels:
+    app: backend-base
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
-      app: myapp
+      app: backend-base
   template:
     metadata:
       labels:
-        app: myapp
+        app: backend-base
     spec:
       containers:
-      - name: myapp-container
-        image: myapp:latest # Reemplaza con la imagen de tu aplicación
+      - name: backend-base
+        image: localhost:8082/backend-base:latest
         ports:
-        - containerPort: 80 # Ajusta el puerto según el puerto expuesto por tu aplicación
+        - containerPort: 3001
         env:
         - name: USERNAME
           valueFrom:
             configMapKeyRef:
-              name: app-config
-              key: USERNAME
+              name: backend-base-config
+              key: username
         - name: API_KEY
           valueFrom:
             secretKeyRef:
-              name: app-secret
-              key: API_KEY
+              name: backend-base-secret
+              key: api-key
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: myapp-service
+  name: backend-base-service
+  namespace: devops
 spec:
   selector:
-    app: myapp
+    app: backend-base
   ports:
   - protocol: TCP
     port: 80
-    targetPort: 80 # Ajusta el puerto según el puerto expuesto por tu aplicación
+    targetPort: 3001
   type: LoadBalancer
+
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: myapp-ingress
+  name: backend-base-ingress
+  namespace: devops
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: myapp.example.com # Reemplaza con tu dominio
+  - host: backend-base.example.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: myapp-service
+            name: backend-base-service
             port:
               number: 80
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-base-config
+  namespace: devops
+data:
+  username: "your-username"  # Reemplaza con tu valor de nombre de usuario
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-base-secret
+  namespace: devops
+type: Opaque
+data:
+  api-key: <base64-encoded-api-key>  # Reemplaza con tu API_KEY codificado en base64
