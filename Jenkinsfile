@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        // Define environment variables here if needed
+        // Define environment variables here if needed arreglar
         SONARQUBE_URL = 'http://sonarqube:9000'
         NEXUS_URL = 'http://nexus:8081'
         KUBERNETES_CONTEXT = 'your-kube-context'
