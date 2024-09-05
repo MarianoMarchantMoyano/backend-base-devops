@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  USERNAME: "defaultUser" # Ajusta esto con el valor predeterminado que desees
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret
+type: Opaque
+data:
+  API_KEY: <base64_encoded_api_key> # Asegúrate de codificar tu API_KEY en base64
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp-container
+        image: myapp:latest # Reemplaza con la imagen de tu aplicación
+        ports:
+        - containerPort: 80 # Ajusta el puerto según el puerto expuesto por tu aplicación
+        env:
+        - name: USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: USERNAME
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: API_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  selector:
+    app: myapp
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80 # Ajusta el puerto según el puerto expuesto por tu aplicación
+  type: LoadBalancer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myapp-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: myapp.example.com # Reemplaza con tu dominio
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: myapp-service
+            port:
+              number: 80
