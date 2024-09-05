@@ -5,7 +5,7 @@ pipeline {
         USERNAME = 'cmd'
         SONAR_HOST_URL = 'http://localhost:9000'
         SONAR_PROJECT_KEY = 'backend-base'
-        SONAR_LOGIN = credentials('sonarqube-token') // Credential ID del token de SonarQube
+        SONAR_LOGIN = credentials('token-sonar-devops') // Credential ID del token de SonarQube
         NEXUS_REPOSITORY = 'http://localhost:8082'
         DOCKER_IMAGE_NAME = 'backend-base'
         DOCKER_REGISTRY_CREDENTIALS = 'nexus-key' // Credential ID de Nexus
