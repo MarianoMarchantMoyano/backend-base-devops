@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         USERNAME = 'cmd'
-        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_HOST_URL = 'http://localhost:8084'
         SONAR_PROJECT_KEY = 'backend-base-devops'
         SONAR_LOGIN = credentials('token-sonar-devops') // Credential ID del token de SonarQube
         //NEXUS_REPOSITORY = 'http://localhost:8082'
