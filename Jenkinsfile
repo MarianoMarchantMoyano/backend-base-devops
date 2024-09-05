@@ -2,84 +2,76 @@ pipeline {
     agent any
 
     environment {
-        // Define environment variables here if needed arreglar
-        SONARQUBE_URL = 'http://sonarqube:9000'
-        NEXUS_URL = 'http://nexus:8081'
-        KUBERNETES_CONTEXT = 'your-kube-context'
+        DOCKER_IMAGE_NAME = 'my-app'
+        NEXUS_URL = 'http://nexus.example.com'
+        KUBECONFIG = '/path/to/kubeconfig'
+        SONARQUBE_URL = 'http://sonarqube.example.com'
+        SONARQUBE_TOKEN = credentials('sonarqube-token') // Asegúrate de definir esta credencial en Jenkins
+        PROJECT_KEY = 'my-project'
     }
 
     stages {
         stage('Install Dependencies') {
             steps {
-                script {
-                    // Replace with your dependency installation command
-                    sh 'npm install'
-                }
+                sh 'npm install'
             }
         }
 
         stage('Testing') {
             steps {
-                script {
-                    // Replace with your test command
-                    sh 'npm test'
-                }
+                sh 'npm test'
             }
         }
 
         stage('Build') {
             steps {
-                script {
-                    // Replace with your build command
-                    sh 'npm run build'
-                }
+                sh 'npm run build'
             }
         }
 
         stage('Upload SonarQube Report') {
             steps {
-                script {
-                    // Replace with your SonarQube scanner command
-                    sh "sonar-scanner -Dsonar.host.url=${env.SONARQUBE_URL} -Dsonar.login=${SONAR_TOKEN}"
-                }
+                sh 'npm run sonar'
             }
         }
 
         stage('Quality Gate Validation') {
             steps {
                 script {
-                    // SonarQube Quality Gate check command
-                    // This example assumes you have a script for checking quality gates
-                    sh 'sonar-quality-gate-check'
+                    def result = sh(script: '''
+                    curl -u ${SONARQUBE_TOKEN}: \
+                    "${SONARQUBE_URL}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}" | \
+                    jq '.projectStatus.status == "OK"' | \
+                    grep true
+                    ''', returnStatus: true)
+                    
+                    if (result != 0) {
+                        error 'Quality gate failed'
+                    }
                 }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Replace with your Docker build command
-                    sh 'docker build -t myapp:latest .'
-                }
+                sh 'docker build -t ${DOCKER_IMAGE_NAME}:latest .'
             }
         }
 
         stage('Upload Docker Image to Nexus') {
             steps {
-                script {
-                    // Replace with your Docker push command
-                    sh 'docker tag myapp:latest ${NEXUS_URL}/repository/myapp/myapp:latest'
-                    sh 'docker push ${NEXUS_URL}/repository/myapp/myapp:latest'
-                }
+                sh '''
+                docker tag ${DOCKER_IMAGE_NAME}:latest ${NEXUS_URL}/repository/docker-repo/${DOCKER_IMAGE_NAME}:latest
+                docker push ${NEXUS_URL}/repository/docker-repo/${DOCKER_IMAGE_NAME}:latest
+                '''
             }
         }
 
         stage('Update Kubernetes Deployment') {
             steps {
-                script {
-                    // Replace with your kubectl command to update the deployment
-                    sh "kubectl --context=${env.KUBERNETES_CONTEXT} set image deployment/myapp myapp=${NEXUS_URL}/repository/myapp/myapp:latest"
-                }
+                sh '''
+                kubectl --kubeconfig=${KUBECONFIG} set image deployment/my-deployment my-container=${NEXUS_URL}/repository/docker-repo/${DOCKER_IMAGE_NAME}:latest
+                '''
             }
         }
     }
