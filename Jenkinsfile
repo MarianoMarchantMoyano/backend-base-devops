@@ -62,7 +62,6 @@ pipeline {
                     agent {
                         docker {
                             image 'sonarsource/sonar-scanner-cli'
-                            args '--network="devops-infra_default"'
                             reuseNode true
                         }
                     }
@@ -70,10 +69,10 @@ pipeline {
                         withSonarQubeEnv('sonarqube') {
                             sh '''
                             sonar-scanner \
-                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-                            -Dsonar.sources=. \
                             -Dsonar.host.url=$SONAR_HOST_URL \
                             -Dsonar.login=$SONAR_LOGIN
+                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                            -Dsonar.sources=. \
                             '''
                         }
                     }
