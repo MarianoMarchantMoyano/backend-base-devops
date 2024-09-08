@@ -41,13 +41,7 @@ pipeline {
         stage('Code Quality') {
             parallel {
                 stage('SonarQube Analysis') {
-                    agent {
-                        docker {
-                            image 'sonarsource/sonar-scanner-cli' // Imagen con sonar-scanner preinstalado
-                            args '--network="devops-infra_default"' // Asegúrate de que esta red sea la correcta
-                            reuseNode true
-                        }
-                    }
+                    
                     steps {
                         withSonarQubeEnv('sonarqube') {
                             sh '''
