@@ -67,16 +67,8 @@ pipeline {
                         }
                     }
                     steps {
-                        withSonarQubeEnv('sonarqube') {
-                            sh '''
-                            sonar-scanner \
-                            -Dsonar.host.url=$SONAR_HOST_URL \
-                            -Dsonar.login=$SONAR_LOGIN
-                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-                            -Dsonar.sources=. \
-                            '''
-                        }
-                    }
+                        waitForQualityGate('sonarqube')
+                            sh 'sonar-scanner'
                 }
 
                 stage('Quality Gate') {
