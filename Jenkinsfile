@@ -1,70 +1,58 @@
 pipeline {
+    agent {
+        docker {
+            image 'node:20.11.1-alpine3.19'
+            reuseNode true
+        }
+    }
 
     environment {
-        USERNAME = 'cmd'
+        SONAR_HOST_URL = 'http://localhost:8084'
+        SONAR_LOGIN = credentials('token-sonar')
+        SONAR_PROJECT_KEY = 'backend-base-devops'
+        NEXUS_URL = 'http://localhost:8081'
+        NEXUS_REPO = 'docker-hosted'
+        DOCKER_IMAGE = 'backend-base-devops'
+        NEXUS_CREDENTIALS_ID = 'nexus-key'
+        KUBERNETES_DEPLOYMENT = 'backend-app'
+        KUBERNETES_NAMESPACE = 'default'
     }
 
     stages {
-
-        stage('Build and test') {
-            agent {
-                docker {
-                    image 'node:20.11.1-alpine3.19' 
-                    reuseNode true
-                }
-            }
-            stages {
-                agent any
-            }
-        }
-    
-    environment {
-        SONAR_HOST_URL = 'http://localhost:8084' // Asegúrate de que esta URL es correcta
-        SONAR_LOGIN = credentials('token-sonar') // Credential ID del token de SonarQube
-        SONAR_PROJECT_KEY = 'backend-base-devops' // Clave del proyecto en SonarQube
-        NEXUS_URL = 'http://localhost:8081' // Asegúrate de que esta URL es correcta
-        NEXUS_REPO = 'docker-hosted' // Nombre de tu repositorio en Nexus
-        DOCKER_IMAGE = 'backend-base-devops' // Nombre de tu imagen Docker
-        NEXUS_CREDENTIALS_ID = 'nexus-key' // ID de las credenciales de Nexus en Jenkins
-        KUBERNETES_DEPLOYMENT = 'backend-app' // Nombre del deployment en Kubernetes
-        KUBERNETES_NAMESPACE = 'default' // Namespace en Kubernetes
-    }
-
-
         stage('Check npm') {
             steps {
-                sh 'npm --version' // Verifica la versión de npm
+                sh 'npm --version'
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install' // Instala las dependencias del proyecto
+                sh 'npm install'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'npm test' // Ejecuta las pruebas del proyecto
+                sh 'npm test'
             }
         }
 
         stage('Build') {
             steps {
-                sh 'npm run build' // Construye el proyecto
+                sh 'npm run build'
             }
         }
 
         stage('Check Sonar Scanner') {
             agent {
                 docker {
-                    image 'sonarsource/sonar-scanner-cli' // Imagen con sonar-scanner preinstalado
-                    args '--network="devops-infra_default"' // Asegúrate de que esta red sea la correcta
+                    image 'sonarsource/sonar-scanner-cli'
+                    args '--network="devops-infra_default"'
                     reuseNode true
                 }
             }
             steps {
-                sh 'sonar-scanner --version' // Verifica la versión de sonar-scanner
+                sh 'sonar-scanner --version'
             }
         }
 
@@ -73,8 +61,8 @@ pipeline {
                 stage('SonarQube Analysis') {
                     agent {
                         docker {
-                            image 'sonarsource/sonar-scanner-cli' // Imagen con sonar-scanner preinstalado
-                            args '--network="devops-infra_default"' // Asegúrate de que esta red sea la correcta
+                            image 'sonarsource/sonar-scanner-cli'
+                            args '--network="devops-infra_default"'
                             reuseNode true
                         }
                     }
@@ -134,19 +122,13 @@ pipeline {
                 }
             }
         }
-    }
 
-        stage('deploy'){
+        stage('Deploy') {
             steps {
                 script {
-                    
-                    if (env.BRANCH_NAME == 'main') {
-                        ambiente = 'prd'
-                    } else {
-                        ambiente = 'dev'
-                    }
+                    def ambiente = env.BRANCH_NAME == 'main' ? 'prd' : 'dev'
                     docker.withRegistry('http://localhost:8082', 'nexus-key') {
-              {          withCredentials([file(credentialsId: "${ambiente}-env", variable: 'ENV_FILE')]) {
+                        withCredentials([file(credentialsId: "${ambiente}-env", variable: 'ENV_FILE')]) {
                             writeFile file: '.env', text: readFile(ENV_FILE)
                             sh "docker compose pull"
                             sh "docker compose --env-file .env up -d --force-recreate"
@@ -156,8 +138,6 @@ pipeline {
             }
         }
     }
-
-    
 
     post {
         always {
