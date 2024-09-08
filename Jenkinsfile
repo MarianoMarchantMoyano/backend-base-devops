@@ -1,6 +1,13 @@
 pipeline {
     agent any
 
+    agent {
+        docker {
+            image 'node:20.11.1-alpine3.19'
+            reuseNode true
+        }
+    }
+
     environment {
         // Definir las variables de entorno necesarias
         SONARQUBE_URL = 'http://localhost:8084'
