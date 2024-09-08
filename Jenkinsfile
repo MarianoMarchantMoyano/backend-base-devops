@@ -1,148 +1,93 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:20.11.1-alpine3.19'
-            reuseNode true
-        }
-        docker {
-            image 'maven:3.8.4-jdk-11' // Ejemplo de imagen con Maven y JDK
-            args '-v /var/run/docker.sock:/var/run/docker.sock' // Permite al contenedor Docker usar el demonio Docker del host
-        }
-    }
-    stages {
-        stage('Build') {
-            steps {
-                sh 'mvn clean install'
-            }
-        }
-        stage('Docker Build') {
-            steps {
-                sh 'docker build -t my-app .'
-            }
-        }
-    }
+    agent any
 
     environment {
-        SONAR_HOST_URL = 'http://localhost:8084'
-        SONAR_LOGIN = credentials('token-sonar')
-        SONAR_PROJECT_KEY = 'backend-base-devops'
+        // Definir las variables de entorno necesarias
+        SONARQUBE_URL = 'http://localhost:8084'
         NEXUS_URL = 'http://localhost:8081'
-        NEXUS_REPO = 'docker-hosted'
-        DOCKER_IMAGE = 'backend-base-devops'
-        NEXUS_CREDENTIALS_ID = 'nexus-key'
-        KUBERNETES_DEPLOYMENT = 'backend-app'
-        KUBERNETES_NAMESPACE = 'default'
+        DOCKER_REGISTRY = "${NEXUS_URL}/repository/docker-hosted/"
+        DOCKER_CREDENTIALS_ID = 'nexus-key'
+        SONARQUBE_CREDENTIALS_ID = 'token-sonar'
+        KUBERNETES_DEPLOYMENT = 'your-kubernetes-deployment' // Reemplaza con tu deployment
+
     }
 
     stages {
-
+        stage('Instalar dependencias') {
+            steps {
+                script {
+                    sh 'npm install' // O el comando adecuado para tu proyecto
+                }
+            }
+        }
         
-        stage('Check npm') {
+        stage('Testing') {
             steps {
-                sh 'npm --version'
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm install'
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                sh 'npm test'
+                script {
+                    sh 'npm test' // O el comando adecuado para tus pruebas
+                }
             }
         }
 
         stage('Build') {
             steps {
-                sh 'npm run build'
-            }
-        }
-
-
-
-        stage('Code Quality') {
-            parallel {
-                stage('SonarQube Analysis') {
-                    agent {
-                        docker {
-                            image 'sonarsource/sonar-scanner-cli'
-                            args '--network="devops-infra_default"'
-                            reuseNode true
-                        }
-                    }
-                    steps {
-                        withSonarQubeEnv('SonarQube') {
-                            sh 'mvn sonar:sonar'
-            }
-                    }
-                }
-
-                stage('Quality Gate') {
-                    steps {
-                        timeout(time: 10, unit: 'MINUTES') {
-                            waitForQualityGate abortPipeline: true
-                        }
-                    }
+                script {
+                    sh 'npm run build' // O el comando adecuado para construir tu proyecto
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Upload de Informe a SonarQube') {
             steps {
                 script {
-                    def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
-                    docker.build("${DOCKER_IMAGE}:${appVersion}")
-                }
-            }
-        }
-
-        stage('Push Docker Image to Nexus') {
-            steps {
-                script {
-                    def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
-                    docker.withRegistry("${NEXUS_URL}", "${NEXUS_CREDENTIALS_ID}") {
-                        docker.image("${DOCKER_IMAGE}:${appVersion}").push()
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar' // O el comando adecuado para subir el informe a SonarQube
                     }
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Validación de puerta de calidad con SonarQube') {
             steps {
                 script {
-                    def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
-                    sh """
-                    kubectl set image deployment/${KUBERNETES_DEPLOYMENT} \
-                    ${KUBERNETES_DEPLOYMENT}=${DOCKER_IMAGE}:${appVersion} \
-                    --namespace=${KUBERNETES_NAMESPACE}
-                    kubectl rollout status deployment/${KUBERNETES_DEPLOYMENT} --namespace=${KUBERNETES_NAMESPACE}
-                    """
+                    waitForQualityGate abortPipeline: true // Espera a la puerta de calidad y aborta si falla
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Construcción de imagen Docker') {
             steps {
                 script {
-                    def ambiente = env.BRANCH_NAME == 'main' ? 'prd' : 'dev'
-                    docker.withRegistry('http://localhost:8082', 'nexus-key') {
-                        withCredentials([file(credentialsId: "${ambiente}-env", variable: 'ENV_FILE')]) {
-                            writeFile file: '.env', text: readFile(ENV_FILE)
-                            sh "docker compose pull"
-                            sh "docker compose --env-file .env up -d --force-recreate"
-                        }
+                    sh 'docker build -t ${DOCKER_REGISTRY}/your-image:latest .' // Reemplaza 'your-image' con tu nombre de imagen
+                }
+            }
+        }
+
+        stage('Upload de imagen al registry de Nexus') {
+            steps {
+                script {
+                    docker.withRegistry("${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
+                        sh 'docker push ${DOCKER_REGISTRY}/your-image:latest' // Reemplaza 'your-image' con tu nombre de imagen
                     }
+                }
+            }
+        }
+
+        stage('Actualización de imagen en deployment de Kubernetes') {
+            steps {
+                script {
+                    sh 'kubectl set image deployment/${KUBERNETES_DEPLOYMENT} your-container=${DOCKER_REGISTRY}/your-image:latest' // Reemplaza 'your-container' y 'your-image' con los nombres adecuados
                 }
             }
         }
     }
 
     post {
-        always {
-            cleanWs()
+        success {
+            echo 'Pipeline completado con éxito'
+        }
+        failure {
+            echo 'Pipeline fallido'
         }
     }
 }
