@@ -8,55 +8,65 @@ pipeline {
     }
     
     environment {
-        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_HOST_URL = 'http://localhost:8084' // Asegúrate de que esta URL es correcta
         SONAR_PROJECT_KEY = 'backend-base-devops'
         SONAR_LOGIN = credentials('token-sonar-devops') // Credential ID del token de SonarQube
-        NEXUS_URL = 'http://localhost:8082'
-        NEXUS_REPO = 'docker-hosted'  // Actualiza con el nombre de tu repositorio en Nexus
-        DOCKER_IMAGE = 'backend-base-devops'  // Cambia por el nombre de tu imagen
-        NEXUS_CREDENTIALS_ID = 'nexus-key'  // Debes configurar las credenciales en Jenkins
-        KUBERNETES_DEPLOYMENT = 'backend-app'  // Nombre del deployment definido en el kubernetes.yaml
-        KUBERNETES_NAMESPACE = 'default'  // Namespace donde está desplegada la aplicación
+        NEXUS_URL = 'http://localhost:8081' // Asegúrate de que esta URL es correcta
+        NEXUS_REPO = 'docker-hosted'  // Nombre de tu repositorio en Nexus
+        DOCKER_IMAGE = 'backend-base-devops'  // Nombre de tu imagen Docker
+        NEXUS_CREDENTIALS_ID = 'nexus-key'  // ID de las credenciales de Nexus en Jenkins
+        KUBERNETES_DEPLOYMENT = 'backend-app'  // Nombre del deployment en Kubernetes
+        KUBERNETES_NAMESPACE = 'default'  // Namespace en Kubernetes
     }
 
     stages {
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'  // Ajusta según tu gestor de dependencias
+                sh 'npm install'  // Instala las dependencias del proyecto
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'npm test'  // Cambia este comando si utilizas otro framework de testing
+                sh 'npm test'  // Ejecuta las pruebas del proyecto
             }
         }
 
         stage('Build') {
             steps {
-                sh 'npm run build'  // Ajusta según tu script de build
+                sh 'npm run build'  // Construye el proyecto
             }
         }
 
-        stage('SonarQube analysis') {
-            steps {
-                script {
-                    // Ejecutar el análisis de SonarQube
-                    withSonarQubeEnv('sonarqube') {
-                        sh 'sonar-scanner \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+        stage('Code Quality') {
+            parallel {
+                stage('SonarQube Analysis') {
+                    agent {
+                        docker {
+                            image 'sonarsource/sonar-scanner-cli' // Imagen con sonar-scanner preinstalado
+                            args '--network="devops-infra_default"' // Asegúrate de que esta red sea la correcta
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        withSonarQubeEnv('sonarqube') {
+                            sh '''
+                            sonar-scanner \
+                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
                             -Dsonar.sources=. \
-                            -Dsonar.host.url=${SONAR_HOST_URL} \
-                            -Dsonar.login=${SONAR_LOGIN}'
+                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.login=$SONAR_LOGIN
+                            '''
+                        }
                     }
                 }
-            }
-        }
 
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: true
+                stage('Quality Gate') {
+                    steps {
+                        timeout(time: 10, unit: 'MINUTES') {
+                            waitForQualityGate abortPipeline: true
+                        }
+                    }
                 }
             }
         }
@@ -65,7 +75,7 @@ pipeline {
             steps {
                 script {
                     def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
-                    docker.build("${DOCKER_IMAGE}:${latest}")
+                    docker.build("${DOCKER_IMAGE}:${appVersion}")
                 }
             }
         }
@@ -73,9 +83,9 @@ pipeline {
         stage('Push Docker Image to Nexus') {
             steps {
                 script {
-                    docker.withRegistry("${NEXUS_URL}/${NEXUS_REPO}", "${NEXUS_CREDENTIALS_ID}") {
+                    docker.withRegistry("${NEXUS_URL}", "${NEXUS_CREDENTIALS_ID}") {
                         def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
-                        docker.image("${DOCKER_IMAGE}:${latest}").push()
+                        docker.image("${DOCKER_IMAGE}:${appVersion}").push()
                     }
                 }
             }
