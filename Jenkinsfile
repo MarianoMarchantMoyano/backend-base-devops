@@ -1,8 +1,17 @@
 pipeline {
+
+    environment {
+        USERNAME = 'cmd'
+    }
+
+    options {
+        disableConcurrentBuilds()
+    }
+
     agent {
         docker {
-            image 'node:16-alpine' // Usa una imagen de Docker con Node.js y npm preinstalados
-            args '-v /var/run/docker.sock:/var/run/docker.sock' // Monta el socket de Docker para la etapa de build
+            image 'node:20.11.1-alpine3.19' // Usa una imagen de Docker con Node.js y npm preinstalados
+            reuseNode true
         }
     }
     
@@ -98,12 +107,16 @@ pipeline {
             }
         }
 
-        stage('Push Docker Image to Nexus') {
+        stage('Subir imagen Docker a Nexus') {
             steps {
                 script {
-                    def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
-                    docker.withRegistry("${NEXUS_URL}", "${NEXUS_CREDENTIALS_ID}") {
-                        docker.image("${DOCKER_IMAGE}:${appVersion}").push()
+                    // Taggear la imagen para el repositorio Nexus
+                    docker.withRegistry("${NEXUS_REPOSITORY}", "${DOCKER_REGISTRY_CREDENTIALS}") {
+                        sh "docker tag ${DOCKER_IMAGE_NAME}:latest ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:latest"
+                        sh "docker tag ${DOCKER_IMAGE_NAME}:latest ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
+                        // Subir la imagen al registry de Nexus
+                        sh "docker push ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:latest"
+                        sh "docker push ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
                     }
                 }
             }
@@ -123,6 +136,29 @@ pipeline {
             }
         }
     }
+
+        stage('deploy'){
+            steps {
+                script {
+                    
+                    if (env.BRANCH_NAME == 'main') {
+                        ambiente = 'prd'
+                    } else {
+                        ambiente = 'dev'
+                    }
+                    docker.withRegistry('http://localhost:8082', 'nexus-key') {
+              {          withCredentials([file(credentialsId: "${ambiente}-env", variable: 'ENV_FILE')]) {
+                            writeFile file: '.env', text: readFile(ENV_FILE)
+                            sh "docker compose pull"
+                            sh "docker compose --env-file .env up -d --force-recreate"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    
 
     post {
         always {
