@@ -43,18 +43,7 @@ pipeline {
             }
         }
 
-        stage('Check Sonar Scanner') {
-            agent {
-                docker {
-                    image 'sonarsource/sonar-scanner-cli'
-                    args '--network="devops-infra_default"'
-                    reuseNode true
-                }
-            }
-            steps {
-                sh 'sonar-scanner --version'
-            }
-        }
+
 
         stage('Code Quality') {
             parallel {
