@@ -67,8 +67,9 @@ pipeline {
                         }
                     }
                     steps {
-                        waitForQualityGate('sonarqube')
+                        waitForQualityGate('sonarqube'){
                             sh 'sonar-scanner'
+                        }                            
                 }
 
                 stage('Quality Gate') {
