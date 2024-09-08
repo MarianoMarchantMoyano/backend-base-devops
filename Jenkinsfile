@@ -9,8 +9,8 @@ pipeline {
     
     environment {
         SONAR_HOST_URL = 'http://localhost:8084' // Asegúrate de que esta URL es correcta
-        SONAR_PROJECT_KEY = 'backend-base-devops'
-        SONAR_LOGIN = credentials('token-sonar') // Credential ID del token de SonarQube
+        SONAR_LOGIN = credentials('token-sonar') 
+        SONAR_PROJECT_KEY = 'backend-base-devops' // Credential ID del token de SonarQube
         NEXUS_URL = 'http://localhost:8081' // Asegúrate de que esta URL es correcta
         NEXUS_REPO = 'docker-hosted'  // Nombre de tu repositorio en Nexus
         DOCKER_IMAGE = 'backend-base-devops'  // Nombre de tu imagen Docker
@@ -41,6 +41,14 @@ pipeline {
         stage('Code Quality') {
             parallel {
                 stage('SonarQube Analysis') {
+
+                    agent {
+                        docker {
+                            image 'sonarsource/sonar-scanner-cli' // Imagen con sonar-scanner preinstalado
+                            args '--network="devops-infra_default"' // Asegúrate de que esta red sea la correcta
+                            reuseNode true
+                        }
+                    }
                     
                     steps {
                         withSonarQubeEnv('sonarqube') {
