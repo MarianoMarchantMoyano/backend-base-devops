@@ -1,9 +1,27 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:20.11.1-alpine3.19'
-            reuseNode true
+    agent any
+
+    environment {
+        USERNAME = 'cmd'
+    }
+    
+    options {
+        disableConcurrentBuilds()
+    }
+    
+    stages {
+        stage('Build and test') {
+            agent {
+                docker {
+                    image 'node:20.11.1-alpine3.19' 
+                    reuseNode true
+                }
+            }
+            stages {
+                agent any
+            }
         }
+        
     }
 
     environment {
