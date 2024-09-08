@@ -1,202 +1,90 @@
 pipeline {
     agent any
-
-    environment {
-        USERNAME = 'cmd'
-    }
-    options {
-        disableConcurrentBuilds()
-    }
     
+    environment {
+        SONAR_HOST_URL = 'http://localhost:8084'
+        SONAR_TOKEN = 'token-sonar-devops'
+        NEXUS_URL = 'http://localhost:8081'
+        NEXUS_REPO = 'repository/your-repo'  // Actualiza con el nombre de tu repositorio en Nexus
+        DOCKER_IMAGE = 'backend-base-devops:latest'  // Cambia por el nombre de tu imagen
+        NEXUS_CREDENTIALS_ID = 'nexus-key'  // Debes configurar las credenciales en Jenkins
+        KUBERNETES_DEPLOYMENT = 'backend-app'  // Nombre del deployment definido en el kubernetes.yaml
+        KUBERNETES_NAMESPACE = 'default'  // Namespace donde está desplegada la aplicación
+    }
+
     stages {
-        stage('Build and test') {
-            agent {
-                docker {
-                    image 'node:20.11.1-alpine3.19'
-                    reuseNode true
-                }
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'  // Ajusta según tu gestor de dependencias
             }
+        }
 
-            environment {
-                // Configura variables necesarias
-                SONAR_HOST_URL = 'http://localhost:9000'
-                SONAR_PROJECT_KEY = 'backend-base-devops'
-                SONAR_LOGIN = credentials('token-sonar-devops') // Credential ID del token de SonarQube
-                NEXUS_REPOSITORY = 'http://localhost:8082'
-                DOCKER_IMAGE_NAME = 'backend-base-devops'
-                DOCKER_REGISTRY_CREDENTIALS = 'nexus-key' // Credential ID de Nexus
+        stage('Run Tests') {
+            steps {
+                sh 'npm test'  // Cambia este comando si utilizas otro framework de testing
             }
+        }
 
-            options {
-                disableConcurrentBuilds()
+        stage('Build') {
+            steps {
+                sh 'npm run build'  // Ajusta según tu script de build
             }
+        }
 
-            stages {
-                stage('Instalar dependencias') {
-                    steps {
-                        script {
-                            // Instalar dependencias de Node.js
-                            sh 'npm install'
-                        }
-                    }
-                }
-                
-                stage('Testing') {
-                    steps {
-                        script {
-                            // Ejecutar los tests
-                            sh 'npm run test'
-                        }
-                    }
-                }
-
-                stage('Build') {
-                    steps {
-                        script {
-                            // Ejecutar el build de la aplicación
-                            sh 'npm run build'
-                        }
-                    }
-                }
-
-                stage('SonarQube analysis') {
-                    steps {
-                        script {
-                            // Ejecutar el análisis de SonarQube
-                            withSonarQubeEnv('sonarqube') {
-                                sh 'sonar-scanner \
-                                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                    -Dsonar.sources=. \
-                                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                                    -Dsonar.login=${SONAR_LOGIN}'
-                            }
-                        }
-                    }
-                }
-
-                stage('Validación de Puerta de Calidad') {
-                    steps {
-                        script {
-                            // Validar la calidad del código a través del Quality Gate
-                            timeout(time: 1, unit: 'MINUTES') {
-                                waitForQualityGate abortPipeline: true
-                            }
-                        }
-                    }
-                }
-
-                stage('Construcción de imagen Docker') {
-                    steps {
-                        script {
-                            // Construir la imagen Docker
-                            sh 'docker build -t ${DOCKER_IMAGE_NAME}:latest .'
-                        }
-                    }
-                }
-
-                stage('Subir imagen Docker a Nexus') {
-                    steps {
-                        script {
-                            // Taggear la imagen para el repositorio Nexus
-                            docker.withRegistry("${NEXUS_REPOSITORY}", "${DOCKER_REGISTRY_CREDENTIALS}") {
-                                sh "docker tag ${DOCKER_IMAGE_NAME}:latest ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:latest"
-                                sh "docker tag ${DOCKER_IMAGE_NAME}:latest ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
-                                // Subir la imagen al registry de Nexus
-                                sh "docker push ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:latest"
-                                sh "docker push ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
-                            }
-                        }
-                    }
-                }
-
-                stage('Actualizar servicio') {
-                    steps {
-                        script {
-                            // Desplegar la nueva imagen en el ambiente correspondiente
-                            def environmentFile = (env.BRANCH_NAME == 'main') ? 'prd-env' : 'dev-env'
-
-                            docker.withRegistry("${NEXUS_REPOSITORY}", "${DOCKER_REGISTRY_CREDENTIALS}") {
-                                withCredentials([file(credentialsId: "${environmentFile}", variable: 'ENV_FILE')]) {
-                                    // Actualizar el entorno con la nueva imagen
-                                    writeFile file: '.env', text: readFile(ENV_FILE)
-                                    sh 'docker compose pull'
-                                    sh 'docker compose up -d --force-recreate'
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            post {
-                always {
-                    // Limpieza
-                    cleanWs()
-                }
-                success {
-                    echo 'Pipeline ejecutado correctamente'
-                }
-                failure {
-                    echo 'Hubo un error en la ejecución del pipeline'
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {  // Configura 'SonarQube' en Jenkins global
+                    sh 'npm run sonar'  // Debes tener configurado un script sonar para ejecutar el análisis
                 }
             }
         }
 
-        stage('Code Quality') {
-            stages {
-                stage('SonarQube analysis') {
-                    agent {
-                        docker {
-                            image 'sonarsource/sonar-scanner-cli'
-                            args '--network="devops-infra_default"'
-                            reuseNode true
-                        }
-                    }
-                    
-                    steps {
-                        withSonarQubeEnv('sonarqube') {
-                            sh 'sonar-scanner'
-                        }
-                    }
-                }
-                
-                stage('Quality Gate') {
-                    steps {
-                        timeout(time: 10, unit: 'SECONDS') {
-                            waitForQualityGate abortPipeline: true
-                        }
-                    }
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        stage('delivery') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('http://localhost:8082', 'nexus-key') {
-                        sh 'docker build -t backend-base-devops:latest .'
-                        sh "docker tag backend-base-devops:latest localhost:8082/backend-base-devops:latest"
-                        sh "docker tag backend-base-devops:latest localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
-                        sh 'docker push localhost:8082/backend-base-devops:latest'
-                        sh "docker push localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+                    def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
+                    docker.build("${DOCKER_IMAGE}:${appVersion}")
+                }
+            }
+        }
+
+        stage('Push Docker Image to Nexus') {
+            steps {
+                script {
+                    docker.withRegistry("${NEXUS_URL}/${NEXUS_REPO}", "${NEXUS_CREDENTIALS_ID}") {
+                        def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
+                        docker.image("${DOCKER_IMAGE}:${appVersion}").push()
                     }
                 }
             }
         }
 
-        stage('deploy') {
+        stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    def ambiente = (env.BRANCH_NAME == 'main') ? 'prd' : 'dev'
-                    docker.withRegistry('http://localhost:8082', 'nexus-key') {
-                        withCredentials([file(credentialsId: "${ambiente}-env", variable: 'ENV_FILE')]) {
-                            writeFile file: '.env', text: readFile(ENV_FILE)
-                            sh "docker compose pull"
-                            sh "docker compose --env-file .env up -d --force-recreate"
-                        }
-                    }
+                    def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
+                    sh """
+                    kubectl set image deployment/${KUBERNETES_DEPLOYMENT} \
+                    ${KUBERNETES_DEPLOYMENT}=${DOCKER_IMAGE}:${appVersion} \
+                    --namespace=${KUBERNETES_NAMESPACE}
+                    kubectl rollout status deployment/${KUBERNETES_DEPLOYMENT} --namespace=${KUBERNETES_NAMESPACE}
+                    """
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
