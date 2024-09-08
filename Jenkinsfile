@@ -1,5 +1,11 @@
 pipeline {
-    agent any
+    
+    agent {
+        docker {
+            image 'node:16-alpine' // Usa una imagen de Docker con Node.js y npm preinstalados
+            args '-v /var/run/docker.sock:/var/run/docker.sock' // Monta el socket de Docker para la etapa de build
+        }
+    }
     
     environment {
         SONAR_HOST_URL = 'http://localhost:8084'
