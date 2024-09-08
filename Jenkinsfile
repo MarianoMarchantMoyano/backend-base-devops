@@ -4,16 +4,19 @@ pipeline {
         USERNAME = 'cmd'
     }
 
-    options {
-        disableConcurrentBuilds()
-    }
+    stages {
 
-    agent {
-        docker {
-            image 'node:20.11.1-alpine3.19' // Usa una imagen de Docker con Node.js y npm preinstalados
-            reuseNode true
+        stage('Build and test') {
+            agent {
+                docker {
+                    image 'node:20.11.1-alpine3.19' 
+                    reuseNode true
+                }
+            }
+            stages {
+                agent any
+            }
         }
-    }
     
     environment {
         SONAR_HOST_URL = 'http://localhost:8084' // Asegúrate de que esta URL es correcta
@@ -27,7 +30,7 @@ pipeline {
         KUBERNETES_NAMESPACE = 'default' // Namespace en Kubernetes
     }
 
-    stages {
+
         stage('Check npm') {
             steps {
                 sh 'npm --version' // Verifica la versión de npm
@@ -107,16 +110,12 @@ pipeline {
             }
         }
 
-        stage('Subir imagen Docker a Nexus') {
+        stage('Push Docker Image to Nexus') {
             steps {
                 script {
-                    // Taggear la imagen para el repositorio Nexus
-                    docker.withRegistry("${NEXUS_REPOSITORY}", "${DOCKER_REGISTRY_CREDENTIALS}") {
-                        sh "docker tag ${DOCKER_IMAGE_NAME}:latest ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:latest"
-                        sh "docker tag ${DOCKER_IMAGE_NAME}:latest ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
-                        // Subir la imagen al registry de Nexus
-                        sh "docker push ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:latest"
-                        sh "docker push ${NEXUS_REPOSITORY}/${DOCKER_IMAGE_NAME}:${env.BUILD_NUMBER}"
+                    def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
+                    docker.withRegistry("${NEXUS_URL}", "${NEXUS_CREDENTIALS_ID}") {
+                        docker.image("${DOCKER_IMAGE}:${appVersion}").push()
                     }
                 }
             }
