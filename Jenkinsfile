@@ -4,6 +4,22 @@ pipeline {
             image 'node:20.11.1-alpine3.19'
             reuseNode true
         }
+        docker {
+            image 'maven:3.8.4-jdk-11' // Ejemplo de imagen con Maven y JDK
+            args '-v /var/run/docker.sock:/var/run/docker.sock' // Permite al contenedor Docker usar el demonio Docker del host
+        }
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'mvn clean install'
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t my-app .'
+            }
+        }
     }
 
     environment {
@@ -19,6 +35,8 @@ pipeline {
     }
 
     stages {
+
+        
         stage('Check npm') {
             steps {
                 sh 'npm --version'
@@ -56,9 +74,9 @@ pipeline {
                         }
                     }
                     steps {
-                        withSonarQubeEnv('sonarqube') {
-                            sh 'sonar-scanner'
-                        }
+                        withSonarQubeEnv('SonarQube') {
+                            sh 'mvn sonar:sonar'
+            }
                     }
                 }
 
