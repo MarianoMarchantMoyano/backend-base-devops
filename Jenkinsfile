@@ -8,11 +8,12 @@ pipeline {
     }
     
     environment {
-        SONAR_HOST_URL = 'http://localhost:8084'
-        SONAR_TOKEN = 'token-sonar-devops'
-        NEXUS_URL = 'http://localhost:8081'
+        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_PROJECT_KEY = 'backend-base-devops'
+        SONAR_LOGIN = credentials('token-sonar-devops') // Credential ID del token de SonarQube
+        NEXUS_URL = 'http://localhost:8082'
         NEXUS_REPO = 'docker-hosted'  // Actualiza con el nombre de tu repositorio en Nexus
-        DOCKER_IMAGE = 'backend-base-devops:latest'  // Cambia por el nombre de tu imagen
+        DOCKER_IMAGE = 'backend-base-devops'  // Cambia por el nombre de tu imagen
         NEXUS_CREDENTIALS_ID = 'nexus-key'  // Debes configurar las credenciales en Jenkins
         KUBERNETES_DEPLOYMENT = 'backend-app'  // Nombre del deployment definido en el kubernetes.yaml
         KUBERNETES_NAMESPACE = 'default'  // Namespace donde está desplegada la aplicación
@@ -37,10 +38,17 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('SonarQube analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') { // El nombre debe coincidir con la configuración en Jenkins
-                    sh 'npm run sonar'
+                script {
+                    // Ejecutar el análisis de SonarQube
+                    withSonarQubeEnv('sonarqube') {
+                        sh 'sonar-scanner \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.sources=. \
+                            -Dsonar.host.url=${SONAR_HOST_URL} \
+                            -Dsonar.login=${SONAR_LOGIN}'
+                    }
                 }
             }
         }
@@ -57,7 +65,7 @@ pipeline {
             steps {
                 script {
                     def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
-                    docker.build("${DOCKER_IMAGE}:${appVersion}")
+                    docker.build("${DOCKER_IMAGE}:${latest}")
                 }
             }
         }
@@ -67,7 +75,7 @@ pipeline {
                 script {
                     docker.withRegistry("${NEXUS_URL}/${NEXUS_REPO}", "${NEXUS_CREDENTIALS_ID}") {
                         def appVersion = sh(script: "cat package.json | jq -r .version", returnStdout: true).trim()
-                        docker.image("${DOCKER_IMAGE}:${appVersion}").push()
+                        docker.image("${DOCKER_IMAGE}:${latest}").push()
                     }
                 }
             }
