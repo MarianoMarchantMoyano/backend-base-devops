@@ -11,7 +11,7 @@ pipeline {
         SONAR_HOST_URL = 'http://localhost:8084'
         SONAR_TOKEN = 'token-sonar-devops'
         NEXUS_URL = 'http://localhost:8081'
-        NEXUS_REPO = 'repository/your-repo'  // Actualiza con el nombre de tu repositorio en Nexus
+        NEXUS_REPO = 'docker-hosted'  // Actualiza con el nombre de tu repositorio en Nexus
         DOCKER_IMAGE = 'backend-base-devops:latest'  // Cambia por el nombre de tu imagen
         NEXUS_CREDENTIALS_ID = 'nexus-key'  // Debes configurar las credenciales en Jenkins
         KUBERNETES_DEPLOYMENT = 'backend-app'  // Nombre del deployment definido en el kubernetes.yaml
@@ -39,15 +39,15 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {  // Configura 'SonarQube' en Jenkins global
-                    sh 'npm run sonar'  // Debes tener configurado un script sonar para ejecutar el análisis
+                withSonarQubeEnv('SonarQube') { // El nombre debe coincidir con la configuración en Jenkins
+                    sh 'npm run sonar'
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
+                timeout(time: 1, unit: 'HOURS') {
                     waitForQualityGate abortPipeline: true
                 }
             }
