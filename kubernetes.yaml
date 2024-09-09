@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: backend-base-devop
-        image: localhost:8082/backend-base-devops:main-70
+        image: localhost:5001/backend-base-devops:main-70
         imagePullPolicy: IfNotPresent
         env:
         - name: USER
