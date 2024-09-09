@@ -4,6 +4,13 @@ pipeline {
         USER = 'Desconocido'
         API_KEY = 'Desconocida'
     }
+    
+    environment {
+        REGISTRY_URL = 'http://localhost:5001'
+        REGISTRY_CREDENTIALS = 'admin' // Cambia esto si usas otro ID de credenciales
+    
+    }
+    
     options {
         disableConcurrentBuilds()
     }
@@ -90,12 +97,6 @@ pipeline {
              }
         }
 
-        docker.withRegistry('http://localhost:5001', 'admin') {
-         // Tu código para manejar la imagen
-            
-            
-        }
-        
         stage('Update Kubernetes Deployment') {
             steps {
                  script {
