@@ -104,7 +104,7 @@ pipeline {
                      sh 'mv kubectl /usr/local/bin/'
 
                     // Actualizar la imagen del deployment en Kubernetes
-                     sh "kubectl set image deployment/backend-base-devops backend-base-devops=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER} --record"
+                     sh "kubectl set image deployment/backend-base-devops backend-base-devops=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
                 }
             }
         }          
