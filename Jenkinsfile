@@ -103,8 +103,8 @@ pipeline {
                      sh 'chmod +x kubectl'
                      sh 'mv kubectl /usr/local/bin/'
 
-                     // Configurar el contexto de kubectl para Minikube   
-                     sh 'minikube kubectl -- config use-context minikube'
+                     // Copiar el archivo kubeconfig al contenedor si es necesario   
+                     sh 'cp /path/to/your/kubeconfig ~/.kube/config'
 
                      // Verificar el contexto actual de kubectl
                      sh 'kubectl config current-context'
@@ -114,7 +114,7 @@ pipeline {
 
                      // Actualizar la imagen del deployment en Kubernetes
                      sh "kubectl set image deployment/backend-base-devops backend-base-devops=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
-                     
+
                      // Verificar el estado del deployment después de actualizar
                      sh 'kubectl get deployment backend-base-devops'
                 }
