@@ -4,8 +4,6 @@ pipeline {
     environment {
         USER = 'Desconocido'
         API_KEY = 'Desconocida'
-        REGISTRY_URL = 'http://localhost:5001'
-        REGISTRY_CREDENTIALS = 'admin' // Cambia esto si usas otro ID de credenciales
     }
     
 
@@ -66,12 +64,12 @@ pipeline {
         stage('delivery'){
             steps {
                 script {
-                    docker.withRegistry('http://localhost:8082', 'nexus-key') {
+                    docker.withRegistry('http://localhost:5001', 'nexus-key') {
                         sh 'docker build -t backend-base-devops:latest .'
-                        sh "docker tag backend-base-devops:latest localhost:8082/backend-base-devops:latest"
-                        sh "docker tag backend-base-devops:latest localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
-                        sh 'docker push localhost:8082/backend-base-devops:latest'
-                        sh "docker push localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+                        sh "docker tag backend-base-devops:latest localhost:5001/backend-base-devops:latest"
+                        sh "docker tag backend-base-devops:latest localhost:5001/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+                        sh 'docker push localhost:5001/backend-base-devops:latest'
+                        sh "docker push localhost:5001/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
                     }
                 }
             }
@@ -84,7 +82,7 @@ pipeline {
                      } else {
                          ambiente = 'dev'
                      }
-                     docker.withRegistry('http://localhost:8082', 'nexus-key') {
+                     docker.withRegistry('http://localhost:5001', 'nexus-key') {
                          withCredentials([file(credentialsId: "${ambiente}-env", variable: 'ENV_FILE')]) {
                              writeFile file: '.env', text: readFile(ENV_FILE)
                              sh "docker compose pull"
@@ -94,17 +92,6 @@ pipeline {
                  }
              }
         }
-
-        stages {
-            stage('Build') {
-                steps {
-                     script {
-                        docker.withRegistry(DOCKER_REGISTRY, DOCKER_CREDENTIALS_ID) {
-                        // Tu código para construir y subir imágenes / si no funciona eliminar
-                    }
-                }
-            }
-        }       
 
         stage('Update Kubernetes Deployment') {
             steps {
