@@ -91,11 +91,16 @@ pipeline {
         }
         stage('Update Kubernetes Deployment') {
             steps {
-                script {
-                    // Comando para actualizar la imagen del deployment en Kubernetes
-                    sh "kubectl set image deployment/backend-base backend-base=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER} --record"
+                 script {
+                     // Descargar e instalar kubectl
+                     sh 'curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"'
+                     sh 'chmod +x kubectl'
+                     sh 'mv kubectl /usr/local/bin/'
+
+                    // Actualizar la imagen del deployment en Kubernetes
+                     sh "kubectl set image deployment/backend-base backend-base=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER} --record"
                 }
             }
-        }
+        }          
     }
 }
