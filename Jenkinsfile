@@ -1,16 +1,14 @@
 pipeline {
     agent any
+    
     environment {
         USER = 'Desconocido'
         API_KEY = 'Desconocida'
-    }
-    
-    environment {
         REGISTRY_URL = 'http://localhost:5001'
         REGISTRY_CREDENTIALS = 'admin' // Cambia esto si usas otro ID de credenciales
-    
     }
     
+
     options {
         disableConcurrentBuilds()
     }
