@@ -1,5 +1,10 @@
 pipeline {
     agent any
+
+    environment {
+        USERNAME = 'cmd'
+    }
+
     stages {
         stage('Checkout') {
             steps {
