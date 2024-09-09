@@ -1,5 +1,23 @@
 pipeline {
     agent any
+    
+    environment {
+        USERNAME = 'cmd'
+    }   
+
+    stages {
+        stage('Build and test') {
+            agent {
+                docker {
+                    image 'node:20.11.1-alpine3.19' 
+                    reuseNode true
+                }
+            }
+            stages {
+                agent any
+            }
+        }
+    }
 
     environment {
         SONARQUBE_URL = 'http://localhost:8084/'
