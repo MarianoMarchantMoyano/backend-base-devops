@@ -1,99 +1,39 @@
 pipeline {
-    
-    agent {
-        docker {
-            image 'node:20.11.1-alpine3.19'
-            reuseNode true
-        }
-    }
-
-    environment {
-        // Definir las variables de entorno necesarias
-        SONARQUBE_URL = 'http://localhost:8084'
-        NEXUS_URL = 'http://localhost:8081'
-        DOCKER_REGISTRY = "${NEXUS_URL}/repository/docker-hosted/"
-        DOCKER_CREDENTIALS_ID = 'nexus-key'
-        SONARQUBE_CREDENTIALS_ID = 'token-sonar'
-        KUBERNETES_DEPLOYMENT = 'your-kubernetes-deployment' // Reemplaza con tu deployment
-
-    }
-
+    agent any
     stages {
-        stage('Instalar dependencias') {
+        stage('Checkout') {
             steps {
-                script {
-                    sh 'npm install' // O el comando adecuado para tu proyecto
-                }
+                checkout scm
             }
         }
-        
-        stage('Testing') {
+        stage('Install Dependencies') {
             steps {
-                script {
-                    sh 'npm test' // O el comando adecuado para tus pruebas
-                }
+                sh 'npm install'
             }
         }
-
         stage('Build') {
             steps {
-                script {
-                    sh 'npm run build' // O el comando adecuado para construir tu proyecto
-                }
+                sh 'npm run build'
             }
         }
-
-        stage('Upload de Informe a SonarQube') {
+        stage('SonarQube Analysis') {
             steps {
                 script {
-                    withSonarQubeEnv('SonarQube') {
-                        sh 'mvn sonar:sonar' // O el comando adecuado para subir el informe a SonarQube
+                    withSonarQubeEnv('MySonarQubeServer') {
+                        sh 'sonar-scanner'
                     }
                 }
             }
         }
-
-        stage('Validación de puerta de calidad con SonarQube') {
+        stage('Quality Gate') {
             steps {
                 script {
-                    waitForQualityGate abortPipeline: true // Espera a la puerta de calidad y aborta si falla
-                }
-            }
-        }
-
-        stage('Construcción de imagen Docker') {
-            steps {
-                script {
-                    sh 'docker build -t ${DOCKER_REGISTRY}/your-image:latest .' // Reemplaza 'your-image' con tu nombre de imagen
-                }
-            }
-        }
-
-        stage('Upload de imagen al registry de Nexus') {
-            steps {
-                script {
-                    docker.withRegistry("${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
-                        sh 'docker push ${DOCKER_REGISTRY}/your-image:latest' // Reemplaza 'your-image' con tu nombre de imagen
+                    def qg = waitForQualityGate()
+                    if (qg.status != 'OK') {
+                        error "Pipeline aborted due to quality gate failure: ${qg.status}"
                     }
                 }
             }
-        }
-
-        stage('Actualización de imagen en deployment de Kubernetes') {
-            steps {
-                script {
-                    sh 'kubectl set image deployment/${KUBERNETES_DEPLOYMENT} your-container=${DOCKER_REGISTRY}/your-image:latest' // Reemplaza 'your-container' y 'your-image' con los nombres adecuados
-                }
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline completado con éxito'
-        }
-        failure {
-            echo 'Pipeline fallido'
         }
     }
 }
