@@ -1,41 +1,89 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: proyecto-final
+  namespace: devops
+data:
+  USER: "Oscar Garrido"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: proyecto-final
+  namespace: devops
+type: Opaque
+data:
+  API_KEY: QUFBREtFWTNFU1NFVFI= #APIKEYSECRET
+---    
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend-base-devop-deployment
+  name: proyecto-final-deployment
   namespace: devops
   labels:
-    app: backend-base-devop
+    app: proyecto-final
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: backend-base-devop
+      app: proyecto-final
   template:
     metadata:
       labels:
-        app: backend-base-devop
+        app: proyecto-final
     spec:
       containers:
-      - name: backend-base-devop
-        image: localhost:8082/backend-base-devops:latest
+      - name: proyecto-final
+        image: localhost:8082/proyecto-devops:latest
+        imagePullPolicy: Always
+        env:
+        - name: USER
+          valueFrom:
+            configMapKeyRef:
+              name: proyecto-final
+              key: USER
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: proyecto-final
+              key: API_KEY
         ports:
         - containerPort: 3001
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "250m"
-          limits:
-            memory: "128Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3001
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /readiness
-            port: 3001
-          initialDelaySeconds: 30
-          periodSeconds: 10
+      imagePullSecrets:
+      - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: proyecto-final-svc
+  namespace: devops
+  labels:
+    app: proyecto-final
+spec:
+  selector:
+    app: proyecto-final
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3001
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: proyecto-final-ingress
+  namespace: devops
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/disable-admission-validation: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /proyecto(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: proyecto-final-svc
+            port:
+              number: 80
