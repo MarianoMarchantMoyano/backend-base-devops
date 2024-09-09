@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    
+
     environment {
         USER = 'Desconocido'
         API_KEY = 'Desconocida'
@@ -94,6 +94,17 @@ pipeline {
                  }
              }
         }
+
+        stages {
+            stage('Build') {
+                steps {
+                     script {
+                        docker.withRegistry(DOCKER_REGISTRY, DOCKER_CREDENTIALS_ID) {
+                        // Tu código para construir y subir imágenes / si no funciona eliminar
+                    }
+                }
+            }
+        }       
 
         stage('Update Kubernetes Deployment') {
             steps {
