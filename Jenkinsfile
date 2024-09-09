@@ -89,6 +89,13 @@ pipeline {
                  }
              }
         }
+
+        docker.withRegistry('http://localhost:5001', 'admin') {
+         // Tu código para manejar la imagen
+            
+            
+        }
+        
         stage('Update Kubernetes Deployment') {
             steps {
                  script {
