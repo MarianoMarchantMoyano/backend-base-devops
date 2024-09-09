@@ -21,12 +21,12 @@ pipeline {
                        sh 'npm install'
                    }
                } 
-                stage('ejecucion de test') {
+               stage('ejecucion de test') {
                    steps {
                        sh 'npm run test'
                    }
                } 
-                stage('ejecucion de build') {
+               stage('ejecucion de build') {
                    steps {
                        sh 'npm run build'
                    }
@@ -62,7 +62,7 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('http://localhost:8082', 'nexus-key') {
-                        sh 'docker build -t proyecto-devops:latest .'
+                        sh 'docker build -t backend-base-devops:latest .'
                         sh "docker tag backend-base-devops:latest localhost:8082/backend-base-devops:latest"
                         sh "docker tag backend-base-devops:latest localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
                         sh 'docker push localhost:8082/backend-base-devops:latest'
@@ -74,8 +74,7 @@ pipeline {
         stage('deploy'){
              steps {
                  script {
-                    
-                     if (env.BRANCH_NAME == 'tarea-final') {
+                     if (env.BRANCH_NAME == 'backend-base-devops') {
                          ambiente = 'prd'
                      } else {
                          ambiente = 'dev'
@@ -89,6 +88,14 @@ pipeline {
                      }
                  }
              }
-         } //si quiero comentar 
+        }
+        stage('Update Kubernetes Deployment') {
+            steps {
+                script {
+                    // Actualización del deployment en Kubernetes
+                    sh "kubectl set image deployment/backend-base backend-base=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER} --record"
+                }
+            }
+        }
     }
 }
