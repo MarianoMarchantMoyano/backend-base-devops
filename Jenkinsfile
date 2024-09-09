@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        USER = 'Desconocido'
-        API_KEY = 'Desconocida'
+        USER = 'backend-base-devop'
+        API_KEY = 'backend-base-devop'
     }
     
 
