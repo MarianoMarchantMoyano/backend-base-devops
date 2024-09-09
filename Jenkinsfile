@@ -1,6 +1,15 @@
 pipeline {
     agent any
 
+    stages {
+        stage('Check Registry') {
+            steps {
+                sh 'curl http://localhost:5001/v2/_catalog'
+            }
+        }
+    }
+
+
     environment {
         USER = 'Desconocido'
         API_KEY = 'Desconocida'
