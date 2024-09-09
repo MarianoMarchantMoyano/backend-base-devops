@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
       - name: backend-base-devops
-        image: localhost:8082/backend-base-devops:latest
+        image: localhost:32775/backend-base-devops:main-98
         imagePullPolicy: Always
         env:
         - name: USER
