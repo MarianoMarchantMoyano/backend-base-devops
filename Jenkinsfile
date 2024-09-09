@@ -1,86 +1,77 @@
 pipeline {
     agent any
+
     environment {
-        USERNAME = 'admin'
+        SONAR_URL = 'http://localhost:8084'
+        SONARQUBE_TOKEN = credentials('token-sonar')
+        NEXUS_URL = 'http://localhost:8081'
+        NEXUS_CREDENTIALS = credentials('nexus-key')
+        KUBERNETES_NAMESPACE = 'default'
+        DOCKER_IMAGE = 'backend-base-devops'
+        DOCKER_TAG = 'latest'
     }
-    options {
-        disableConcurrentBuilds()
+
+    tools {
+        nodejs "NodeJS"  // El nombre de la herramienta definida en Jenkins
     }
+
     stages {
-        stage('Build and test') {
-            agent {
-                docker {
-                    image 'node:20.11.1-alpine3.19' 
-                    reuseNode true
-                }
-            }
-            stages {
-               stage('Instalar dependencias') {
-                   steps {
-                       sh 'npm install'
-                   }
-               } 
-                stage('ejecucion de test') {
-                   steps {
-                       sh 'npm run test'
-                   }
-               } 
-                stage('ejecucion de build') {
-                   steps {
-                       sh 'npm run build'
-                   }
-               } 
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
             }
         }
-        stage('Code Quality'){
-            stages {
-                stage('SonarQube Analisis') {
-                    agent {
-                        docker {
-                            image 'sonarsource/sonar-scanner-cli' 
-                            args '--network="backend-base-devops_default"'
-                            reuseNode true
-                        }
-                    }
-                    steps {
-                        withSonarQubeEnv('sonarqube') {
-                            sh 'sonar-scanner'
-                        }
-                    }
-                }
-             
+
+        stage('Run Tests') {
+            steps {
+                sh 'npm run test'
             }
         }
-        stage('Delivery'){
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+
+        stage('Quality Gate') {
             steps {
                 script {
-                    docker.withRegistry('http://localhost:8081', 'nexus-key') {
-                        sh 'docker build -t backend-base-devops:latest .'
-                        sh "docker tag backend-base:latest localhost:8081/backend-base-devops:latest"
-                        sh 'docker push localhost:8081/backend-base-devops:latest'
-                        
+                    timeout(time: 1, unit: 'HOURS') {
+                        waitForQualityGate abortPipeline: true
                     }
                 }
             }
         }
-        stage('Deploy'){
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
+            }
+        }
+
+        stage('Push to Nexus') {
             steps {
                 script {
-                    
-                    if (env.BRANCH_NAME == 'main') {
-                        ambiente = 'prdd'
-                    } else {
-                        ambiente = 'dev'
-                    }
-                    docker.withRegistry('http://localhost:8081', 'nexus-key') {
-                        withCredentials([file(credentialsId: "${ambiente}-env", variable: 'ENV_FILE')]) {
-                            writeFile file: '.env', text: readFile(ENV_FILE)
-                            sh "docker compose pull"
-                            sh "docker compose --env-file .env up -d --force-recreate"
-                        }
+                    docker.withRegistry("${NEXUS_URL}", "${NEXUS_CREDENTIALS}") {
+                        sh 'docker push ${DOCKER_IMAGE}:${DOCKER_TAG}'
                     }
                 }
             }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl set image deployment/backend-deployment backend=${DOCKER_IMAGE}:${DOCKER_TAG} --namespace=${KUBERNETES_NAMESPACE}'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
