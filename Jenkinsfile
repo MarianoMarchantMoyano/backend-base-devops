@@ -21,12 +21,12 @@ pipeline {
                        sh 'npm install'
                    }
                } 
-               stage('ejecucion de test') {
+                stage('ejecucion de test') {
                    steps {
                        sh 'npm run test'
                    }
                } 
-               stage('ejecucion de build') {
+                stage('ejecucion de build') {
                    steps {
                        sh 'npm run build'
                    }
@@ -92,7 +92,7 @@ pipeline {
         stage('Update Kubernetes Deployment') {
             steps {
                 script {
-                    // Actualización del deployment en Kubernetes
+                    // Comando para actualizar la imagen del deployment en Kubernetes
                     sh "kubectl set image deployment/backend-base backend-base=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER} --record"
                 }
             }
