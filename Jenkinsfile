@@ -1,10 +1,11 @@
 pipeline {
     agent any
-    
     environment {
-        USERNAME = 'cmd'
-    }   
-
+        USERNAME = 'admin'
+    }
+    options {
+        disableConcurrentBuilds()
+    }
     stages {
         stage('Build and test') {
             agent {
@@ -14,93 +15,72 @@ pipeline {
                 }
             }
             stages {
-                agent any
+               stage('Instalar dependencias') {
+                   steps {
+                       sh 'npm install'
+                   }
+               } 
+                stage('ejecucion de test') {
+                   steps {
+                       sh 'npm run test'
+                   }
+               } 
+                stage('ejecucion de build') {
+                   steps {
+                       sh 'npm run build'
+                   }
+               } 
             }
         }
-    }
-
-    environment {
-        SONARQUBE_URL = 'http://localhost:8084/'
-        NEXUS_URL = 'http://localhost:8081/'
-        NEXUS_REPO = 'docker-hosted'
-        SONARQUBE_TOKEN = credentials('token-sonar')
-        NEXUS_KEY = credentials('nexus-key')
-        DOCKER_IMAGE_NAME = 'backend-base-devops'
-    }
-
-    stages {
-        stage('Install Dependencies') {
+        stage('Code Quality'){
+            stages {
+                stage('SonarQube Analisis') {
+                    agent {
+                        docker {
+                            image 'sonarsource/sonar-scanner-cli' 
+                            args '--network="backend-base-devops_default"'
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        withSonarQubeEnv('sonarqube') {
+                            sh 'sonar-scanner'
+                        }
+                    }
+                }
+             
+            }
+        }
+        stage('Delivery'){
             steps {
                 script {
-                    // Dependiendo de tu lenguaje y gestor de paquetes
-                    sh 'npm install' // Para Node.js
+                    docker.withRegistry('http://localhost:8081', 'nexus-key') {
+                        sh 'docker build -t backend-base-devops:latest .'
+                        sh "docker tag backend-base:latest localhost:8081/backend-base-devops:latest"
+                        sh 'docker push localhost:8081/backend-base-devops:latest'
+                        
+                    }
                 }
             }
         }
-
-        stage('Testing') {
+        stage('Deploy'){
             steps {
                 script {
-                    // Ejecuta tus pruebas aquí
-                    sh 'npm test'
-                }
-            }
-        }
-
-        stage('Build') {
-            steps {
-                script {
-                    // Construye tu aplicación
-                    sh 'npm run build'
-                }
-            }
-        }
-
-        stage('Upload Quality Report to SonarQube') {
-            steps {
-                script {
-                    // Ejecuta el análisis de SonarQube
-                    sh "sonar-scanner -Dsonar.projectKey=${env.JOB_NAME} -Dsonar.sources=. -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}"
-                }
-            }
-        }
-
-        stage('Quality Gate Validation') {
-            steps {
-                script {
-                    // Espera hasta que el análisis de SonarQube complete y verifica la puerta de calidad
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    // Construye la imagen Docker
-                    sh "docker build -t ${DOCKER_IMAGE_NAME}:latest ."
-                }
-            }
-        }
-
-        stage('Upload Image to Nexus') {
-            steps {
-                script {
-                    // Log in to Docker registry (Nexus)
-                    sh "echo ${NEXUS_KEY} | docker login ${NEXUS_URL} --username admin --password-stdin"
                     
-                    // Tag and push the Docker image to Nexus
-                    sh "docker tag ${DOCKER_IMAGE_NAME}:latest ${NEXUS_URL}/${NEXUS_REPO}/${DOCKER_IMAGE_NAME}:latest"
-                    sh "docker push ${NEXUS_URL}/${NEXUS_REPO}/${DOCKER_IMAGE_NAME}:latest"
+                    if (env.BRANCH_NAME == 'main') {
+                        ambiente = 'prdd'
+                    } else {
+                        ambiente = 'dev'
+                    }
+                    docker.withRegistry('http://localhost:8081', 'nexus-key') {
+                        withCredentials([file(credentialsId: "${ambiente}-env", variable: 'ENV_FILE')]) {
+                            writeFile file: '.env', text: readFile(ENV_FILE)
+                            sh "docker compose pull"
+                            sh "docker compose --env-file .env up -d --force-recreate"
+                        }
+                    }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            // Opcional: limpiar recursos, enviar notificaciones, etc.
-            cleanWs()
         }
     }
 }
