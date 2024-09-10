@@ -103,17 +103,18 @@ pipeline {
                      sh 'chmod +x kubectl'
                      sh 'mv kubectl /usr/local/bin/'
 
-                     // Asegurarse de que kubectl usa el contexto correcto 
-                     sh 'kubectl config use-context minikube'
+                     // Copiar el archivo kubeconfig al entorno de Jenkins
+                     sh 'mkdir -p $HOME/.kube'
+                     sh 'cp /path/to/your/kubeconfig $HOME/.kube/config'
 
                      // Verificar el contexto actual de kubectl
-                     //sh 'kubectl config current-context'
+                     sh 'kubectl config current-context'
 
                      // Verificar el estado del deployment antes de actualizar
-                     //sh 'kubectl get deployment backend-base-devops'
+                     sh 'kubectl config use-context minikube'
 
-                     // Actualizar la imagen del deployment en Kubernetes
-                     sh "kubectl set image deployment/backend-base-devops backend-base-devops=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+                     // Usar el contexto de Minikube
+                     sh "kubectl set image deployment/backend-base-devops backend-base-devops=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}  --record"
 
                      // Verificar el estado del deployment después de actualizar
                      //sh 'kubectl get deployment backend-base-devops'
