@@ -95,29 +95,25 @@ pipeline {
              }
         }
 
+        stage('Set Up Kubernetes Config') {
+            steps {
+                 script {
+                    // Copiar el archivo de configuración de Kubernetes a un lugar accesible para Jenkins
+                    sh 'mkdir -p /root/.kube'
+                    sh 'cp /home/mariano/.kube/config /root/.kube/config'
+                }
+            }
+        }
+
+
         stage('Update Kubernetes Deployment') {
             steps {
                  script {
-                     // Descargar e instalar kubectl
-                     sh 'curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"'
-                     sh 'chmod +x kubectl'
-                     sh 'mv kubectl /usr/local/bin/'
-
-                     // Copiar el archivo kubeconfig al entorno de Jenkins
-                     sh 'mkdir -p $HOME/.kube'
-                     sh 'cp /path/to/your/kubeconfig $HOME/.kube/config'
-
-                     // Verificar el contexto actual de kubectl
-                     sh 'kubectl config current-context'
-
-                     // Verificar el estado del deployment antes de actualizar
+                     // Asegúrate de que el contexto esté configurado correctamente
                      sh 'kubectl config use-context minikube'
-
-                     // Usar el contexto de Minikube
-                     sh "kubectl set image deployment/backend-base-devops backend-base-devops=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}  --record"
-
-                     // Verificar el estado del deployment después de actualizar
-                     //sh 'kubectl get deployment backend-base-devops'
+                     // Actualizar la imagen del deployment en Kubernetes
+                     sh "kubectl set image deployment/backend-base-devops backend-base-devops=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER} --record"
+ 
                 }
             }
         }          
