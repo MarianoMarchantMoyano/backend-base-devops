@@ -4,6 +4,7 @@ pipeline {
     environment {
         USER = 'backend-base-devop'
         API_KEY = 'backend-base-devop'
+        KUBECONFIG = '/path/to/your/kubeconfig' // Ajusta esta ruta según sea necesario
     }
 
     
@@ -96,9 +97,6 @@ pipeline {
              }
         }
 
-        environment {
-            KUBECONFIG = '/path/to/your/kubeconfig' // Ajusta esta ruta según sea necesario
-        }
 
         stages {
             stage('Check PATH') {
