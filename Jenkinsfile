@@ -4,7 +4,7 @@ pipeline {
     environment {
         USER = 'backend-base-devop'
         API_KEY = 'backend-base-devop'
-        KUBECONFIG = '/home/mariano/.kube/config' // Asegúrate de que esta ruta sea correcta
+        KUBECONFIG = '/path/to/kubeconfig'
     }
 
     
@@ -75,6 +75,21 @@ pipeline {
                         sh 'docker push localhost:8082/backend-base-devops:latest'
                         sh "docker push localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
                     }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    // Copia el fichero kubeconfig al contenedor o nodo donde se ejecuta el pipeline
+                    sh 'cp /path/to/uploaded/kubeconfig $KUBECONFIG'
+                    
+                    // Verifica que el fichero kubeconfig está presente
+                    sh 'ls -l $KUBECONFIG'
+                    
+                    // Ahora puedes ejecutar comandos kubectl
+                    sh 'kubectl get nodes'
                 }
             }
         }
