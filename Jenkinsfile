@@ -95,17 +95,6 @@ pipeline {
              }
         }
 
-        stage('Set Up Kubernetes Config') {
-            steps {
-                 script {
-                    // Copiar el archivo de configuración de Kubernetes a un lugar accesible para Jenkins
-                    sh 'mkdir -p /root/.kube'
-                    sh 'cp /home/mariano/.kube/config /root/.kube/config'
-                }
-            }
-        }        
-
-
         stage('Kubernetes Deployment') {
             steps {
                  script {
