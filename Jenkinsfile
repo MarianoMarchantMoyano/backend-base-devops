@@ -109,26 +109,7 @@ pipeline {
             }
         }
 
-        stage('Verify Context and Port') {
-            steps {
-                script {
-                 sh 'kubectl config use-context minikube'
-                 sh 'kubectl get nodes'
-                 sh 'curl -k https://127.0.0.1:32781'
-                }
-            }
-        }
-
-
-
-        stage('Check PATH') {
-            steps {
-                sh 'echo $PATH'
-                sh 'which curl || echo "curl not found"'
-                sh 'which kubectl || echo "kubectl not found"'
-            }
-        }
-
+ 
         stage('Kubernetes Deployment') {
             steps {
                  script {
