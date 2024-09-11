@@ -100,13 +100,6 @@ pipeline {
 
         //Verificacion de Kubernete!
 
-        stage('Check kubectl') {
-            steps {
-                sh 'which kubectl || echo "kubectl not found"'
-            }
-        }
-
-
         stage('Check PATH') {
             steps {
                 sh 'echo $PATH'
