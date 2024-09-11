@@ -95,24 +95,15 @@ pipeline {
              }
         }
 
-        stage('Set Up Kubernetes Config') {
+
+        stage('Kubernetes Deployment') {
             steps {
                  script {
-                    // Copiar el archivo de configuración de Kubernetes a un lugar accesible para Jenkins
-                    sh 'mkdir -p /root/.kube'
-                    sh 'cp /home/mariano/.kube/config /root/.kube/config'
-                }
-            }
-        }
-
-
-        stage('Update Kubernetes Deployment') {
-            steps {
-                 script {
-                     // Asegúrate de que el contexto esté configurado correctamente
-                     sh 'kubectl config use-context minikube'
-                     // Actualizar la imagen del deployment en Kubernetes
-                     sh "kubectl set image deployment/backend-base-devops backend-base-devops=localhost:8082/backend-base-devops:${env.BRANCH_NAME}-${env.BUILD_NUMBER} --record"
+                     def imageName = "localhost:8082/backend-base-${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+                     echo "Deploying image: ${imageName}"
+                     withKubeConfig([credentialsId: 'kubeconfig-id']) {
+                         sh "kubectl set image deployment backend-base-deployment backend-base=${imageName}"
+                     }
  
                 }
             }
