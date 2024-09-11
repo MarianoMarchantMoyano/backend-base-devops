@@ -15,7 +15,7 @@ spec:
         app: backend-base-devops
     spec:
       containers:
-      - name: backend-base
+      - name: backend-base-devops
         image: localhost:8082/backend-base-devops
         imagePullPolicy: Always
         env:

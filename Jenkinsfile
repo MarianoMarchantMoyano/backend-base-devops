@@ -56,7 +56,7 @@ pipeline {
                 }
                 stage('Quality Gate') {
                     steps {
-                        timeout(time: 20, unit: 'MINUTES') {
+                        timeout(time: 3, unit: 'MINUTES') {
                             waitForQualityGate abortPipeline: true
                         }
                     }
@@ -94,6 +94,16 @@ pipeline {
                  }
              }
         }
+
+        stage('Set Up Kubernetes Config') {
+            steps {
+                 script {
+                    // Copiar el archivo de configuración de Kubernetes a un lugar accesible para Jenkins
+                    sh 'mkdir -p /root/.kube'
+                    sh 'cp /home/mariano/.kube/config /root/.kube/config'
+                }
+            }
+        }        
 
 
         stage('Kubernetes Deployment') {
