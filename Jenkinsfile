@@ -15,15 +15,6 @@ pipeline {
 
     stages {        
 
-        stage('Diagnostics') {
-            when {
-                expression { currentBuild.result == 'FAILURE' }
-            }
-            steps {
-                sh 'java -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.LAUNCH_DIAGNOSTICS=true -jar /usr/share/jenkins/jenkins.war'
-            }
-        }
-
         stage('Build and test') {
             agent {
                 docker {
@@ -144,6 +135,7 @@ pipeline {
             agent {
                 docker {
                     image 'bitnami/kubectl:1.31.0' // Imagen que ya tiene kubectl
+                    args '--entrypoint=""'
                     reuseNode true
                  }
             }
