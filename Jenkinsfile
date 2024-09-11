@@ -106,22 +106,6 @@ pipeline {
             }
         }
 
-        stage('Install kubectl') {
-            agent {
-                docker {
-                image 'node:20.11.1-alpine3.19' // Cambia esto si usas una imagen diferente
-                reuseNode true
-            }
-            }
-            steps {
-                sh '''
-                apk add --no-cache curl
-                curl -LO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
-                chmod +x ./kubectl
-                mv ./kubectl /usr/local/bin/kubectl
-                '''
-            }
-        }
 
         stage('Check PATH') {
             steps {
