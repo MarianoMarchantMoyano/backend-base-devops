@@ -98,6 +98,30 @@ pipeline {
              }
         }
 
+        //Verificacion de Kubernete!
+
+        stage('Check kubectl') {
+            steps {
+                sh 'which kubectl || echo "kubectl not found"'
+            }
+        }
+
+        stage('Install kubectl') {
+            agent {
+                docker {
+                image 'node:20.11.1-alpine3.19' // Cambia esto si usas una imagen diferente
+                reuseNode true
+            }
+            }
+            steps {
+                sh '''
+                curl -LO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
+                chmod +x ./kubectl
+                mv ./kubectl /usr/local/bin/kubectl
+                '''
+            }
+        }
+
         stage('Check PATH') {
             steps {
                 sh 'echo $PATH'
