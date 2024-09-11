@@ -98,7 +98,7 @@ pipeline {
         stage('Kubernetes Deployment') {
             steps {
                  script {
-                     def imageName = "localhost:8082/backend-base-devops-${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+                     def imageName = "localhost:3001/backend-base-devops-${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
                      echo "Deploying image: ${imageName}"
                      withKubeConfig([credentialsId: 'kubeconfig-id']) {
                          sh "kubectl set image deployment backend-base-devops-deployment backend-base-devops=${imageName}"
