@@ -115,6 +115,7 @@ pipeline {
             }
             steps {
                 sh '''
+                apk add --no-cache curl
                 curl -LO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
                 chmod +x ./kubectl
                 mv ./kubectl /usr/local/bin/kubectl
@@ -129,6 +130,12 @@ pipeline {
         }
 
         stage('Kubernetes Deployment') {
+            agent {
+                docker {
+                    image 'bitnami/kubectl:1.31.0' // Imagen que ya tiene kubectl
+                    reuseNode true
+                 }
+            }
             steps {
                  script {
                      def imageName = "localhost:8082/backend-base-devops-${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
