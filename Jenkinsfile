@@ -13,6 +13,21 @@ pipeline {
         disableConcurrentBuilds()
     }
     stages {
+
+
+        stages {
+        // ... (Las etapas de tu pipeline principal)SACAR SI NO ES NECESARIO 
+
+        stage('Diagnostics') {
+            when {
+                expression { currentBuild.result == 'FAILURE' }
+            }
+            steps {
+                sh 'java -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.LAUNCH_DIAGNOSTICS=true -jar /usr/share/jenkins/jenkins.war'
+            }
+        }
+
+
         
 
         stage('Build and test') {
@@ -126,6 +141,8 @@ pipeline {
         stage('Check PATH') {
             steps {
                 sh 'echo $PATH'
+                sh 'which curl || echo "curl not found"'
+                sh 'which kubectl || echo "kubectl not found"'
             }
         }
 
