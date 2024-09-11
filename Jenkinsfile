@@ -98,8 +98,8 @@ pipeline {
              }
         }
 
-        stages {
-            stage('Check PATH') {
+        stage{
+            stages('Check PATH') {
                 steps {
                  sh 'echo $PATH'
                 }
