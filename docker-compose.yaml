@@ -1,17 +1,8 @@
 version: '3'
 services:
   backend:
-    image: localhost:32770/backend-base-devops:latest
+    image: localhost:8082/backend-base-devops:latest
     ports:
       - "3001:3001"
     env_file:
       - ${ENV_FILE}
-  jenkins:
-    image: jenkins/jenkins:lts
-    volumes:
-      - /home/mariano/.kube:/root/.kube
-      - /home/mariano/.minikube:/root/.minikube
-    environment:
-      - KUBECONFIG=/root/.kube/config
-    ports:
-      - "8080:8080"
