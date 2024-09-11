@@ -100,6 +100,27 @@ pipeline {
 
         //Verificacion de Kubernete! si es necesario
 
+        stage('Check Kubernetes Config') {
+            steps {
+                script {
+                    sh 'cat /home/mariano/.kube/config'
+                    sh 'kubectl config view'
+                }
+            }
+        }
+
+        stage('Verify Context and Port') {
+            steps {
+                script {
+                 sh 'kubectl config use-context minikube'
+                 sh 'kubectl get nodes'
+                 sh 'curl -k https://127.0.0.1:32781'
+                }
+            }
+        }
+
+
+
         stage('Check PATH') {
             steps {
                 sh 'echo $PATH'
