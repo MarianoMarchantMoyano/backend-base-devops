@@ -5,6 +5,7 @@ pipeline {
         USER = 'backend-base-devop'
         API_KEY = 'backend-base-devop'
     }
+
     
 
     options {
@@ -93,6 +94,18 @@ pipeline {
                      }
                  }
              }
+        }
+
+        environment {
+            KUBECONFIG = '/path/to/your/kubeconfig' // Ajusta esta ruta según sea necesario
+        }
+
+        stages {
+            stage('Check PATH') {
+                 steps {
+                 sh 'echo $PATH'
+                }
+            }
         }
 
         stage('Kubernetes Deployment') {
