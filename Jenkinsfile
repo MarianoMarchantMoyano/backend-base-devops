@@ -98,7 +98,7 @@ pipeline {
              }
         }
 
-        //Verificacion de Kubernete!
+        //Verificacion de Kubernete! si es necesario
 
         stage('Check PATH') {
             steps {
