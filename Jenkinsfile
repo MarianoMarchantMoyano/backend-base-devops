@@ -4,7 +4,7 @@ pipeline {
     environment {
         USER = 'backend-base-devop'
         API_KEY = 'backend-base-devop'
-        KUBECONFIG = '/home/jenkins/.kube/config' // Ajusta esta ruta según sea necesario
+        KUBECONFIG = '/home/mariano/.kube/config' // Asegúrate de que esta ruta sea correcta
     }
 
     
