@@ -78,6 +78,7 @@ pipeline {
                 }
             }
         }
+
         stage('deploy'){
              steps {
                  script {
@@ -97,10 +98,9 @@ pipeline {
              }
         }
 
-
         stages {
             stage('Check PATH') {
-                 steps {
+                steps {
                  sh 'echo $PATH'
                 }
             }
