@@ -12,11 +12,8 @@ pipeline {
     options {
         disableConcurrentBuilds()
     }
-    stages {
 
-
-        stages {
-        // ... (Las etapas de tu pipeline principal)SACAR SI NO ES NECESARIO 
+    stages {        
 
         stage('Diagnostics') {
             when {
@@ -26,9 +23,6 @@ pipeline {
                 sh 'java -Dorg.jenkinsci.plugins.durabletask.BourneShellScript.LAUNCH_DIAGNOSTICS=true -jar /usr/share/jenkins/jenkins.war'
             }
         }
-
-
-        
 
         stage('Build and test') {
             agent {
