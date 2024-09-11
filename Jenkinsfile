@@ -132,13 +132,6 @@ pipeline {
         }
 
         stage('Kubernetes Deployment') {
-            agent {
-                docker {
-                    image 'bitnami/kubectl:1.31.0' // Imagen que ya tiene kubectl
-                    args '--entrypoint=""'
-                    reuseNode true
-                 }
-            }
             steps {
                  script {
                      def imageName = "localhost:8082/backend-base-devops-${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
