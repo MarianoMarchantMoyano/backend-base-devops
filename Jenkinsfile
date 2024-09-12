@@ -110,18 +110,18 @@ pipeline {
         }
 
  
-        stage('Kubernetes Deployment') {
-            steps {
-                 script {
-                     def imageName = "localhost:8082/backend-base-devops-${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
-                     echo "Deploying image: ${imageName}"
-                     withKubeConfig([credentialsId: 'kubeconfig-id']) {
-                         sh "kubectl config view"
-                         sh "kubectl set image deployment/backend-base-devops-deployment backend-base-devops=${imageName} -n devops"
-                     }
+        //stage('Kubernetes Deployment') {
+            //steps {
+                 //script {
+                     //def imageName = "localhost:8082/backend-base-devops-${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+                     //echo "Deploying image: ${imageName}"
+                     //withKubeConfig([credentialsId: 'kubeconfig-id']) {
+                         //sh "kubectl config view"
+                         //sh "kubectl set image deployment/backend-base-devops-deployment backend-base-devops=${imageName} -n devops"
+                     //}
  
-                }
-            }
-        }          
+                //}
+            //}
+        //}          
     }
 }
