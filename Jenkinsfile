@@ -79,21 +79,6 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                script {
-                    // Copia el fichero kubeconfig al contenedor o nodo donde se ejecuta el pipeline
-                    sh 'cp /path/to/uploaded/kubeconfig $KUBECONFIG'
-                    
-                    // Verifica que el fichero kubeconfig está presente
-                    sh 'ls -l $KUBECONFIG'
-                    
-                    // Ahora puedes ejecutar comandos kubectl
-                    sh 'kubectl get nodes'
-                }
-            }
-        }
-
         stage('deploy'){
              steps {
                  script {
@@ -109,8 +94,14 @@ pipeline {
                              sh "docker compose --env-file .env up -d --force-recreate"
                          }
                      }
-                 }
-             }
+                     // Copiar el archivo kubeconfig y verificar su contenido
+                     sh 'cp /path/to/kubeconfig /root/.kube/config'  // Actualiza la ruta según corresponda
+                     sh 'kubectl config view'
+
+                        // Ejemplo de comando kubectl para desplegar en Kubernetes
+                     sh 'kubectl set image deployment/backend-base-devops-deployment backend-base-devops=localhost:8082/backend-base-devops-main-165 -n devops'
+                }
+            }
         }
 
         //Verificacion de Kubernete! si es necesario
