@@ -81,7 +81,7 @@ pipeline {
 
         stage('deploy'){
              steps {
-                 script {
+                script {
                      if (env.BRANCH_NAME == 'backend-base-devops') {
                          ambiente = 'prd'
                      } else {
@@ -94,12 +94,6 @@ pipeline {
                              sh "docker compose --env-file .env up -d --force-recreate"
                          }
                      }
-                     // Copiar el archivo kubeconfig y verificar su contenido
-                     sh 'cp /path/to/kubeconfig /mariano/.kube/config'  // Actualiza la ruta según corresponda
-                     sh 'kubectl config view'
-
-                        // Ejemplo de comando kubectl para desplegar en Kubernetes
-                     sh 'kubectl set image deployment/backend-base-devops-deployment backend-base-devops=localhost:8082/backend-base-devops-main-165 -n devops'
                 }
             }
         }
