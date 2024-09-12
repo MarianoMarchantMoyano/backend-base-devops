@@ -95,7 +95,7 @@ pipeline {
                          }
                      }
                      // Copiar el archivo kubeconfig y verificar su contenido
-                     sh 'cp /path/to/kubeconfig /root/.kube/config'  // Actualiza la ruta según corresponda
+                     sh 'cp /path/to/kubeconfig /mariano/.kube/config'  // Actualiza la ruta según corresponda
                      sh 'kubectl config view'
 
                         // Ejemplo de comando kubectl para desplegar en Kubernetes
